@@ -98,6 +98,6 @@ MYSQL_PASSWORD="qlxazm"
 MYSQL_DBNAME="mydb"
 MYSQL_TABLE="proxy_ip"
 #爬取的内容存放的数据表
-NEWS_TABLE="tynews"
+NEWS_TABLE="auto_temp_news"
 #爬取的内容的种类
-SPIDER_CATEGORY="ty"
+SPIDER_CATEGORY="auto"
