@@ -2,15 +2,14 @@
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 from sklearn import preprocessing
-from SQLHelper.SqlHelper import SqlHelper
 import time
 import math
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_extraction.text import TfidfTransformer
+from textClassifier.utils import loadDataSet
 
 class MutipleNativBayes(object):
 
@@ -35,6 +34,10 @@ class MutipleNativBayes(object):
         """
         vectorizer = CountVectorizer(np.uint8)
         texts = vectorizer.fit_transform(texts)
+
+        # 使用TF-IDF进行加权
+        transformer = TfidfTransformer()
+        texts = transformer.fit_transform(texts)
 
         #利用卡方检验提取特征值
         label = labels.astype(np.uint8)
@@ -111,9 +114,19 @@ class MutipleNativBayes(object):
         :param testDataset:
         :return:
         """
-        return CountVectorizer(vocabulary = self.wordBag, dtype=np.uint8).fit_transform(testDataset)
+        X = CountVectorizer(vocabulary = self.wordBag, dtype=np.uint8).fit_transform(testDataset)
+        transformer = TfidfTransformer()
+        texts = transformer.fit_transform(X)
+        return texts
 
     def  fit(self, texts, labels, max_features =10000):
+        """
+        训练
+        :param texts:
+        :param labels:
+        :param max_features:
+        :return:
+        """
         # 编码类别
         labels = self.__encoder.fit_transform(labels)
 
@@ -132,6 +145,12 @@ class MutipleNativBayes(object):
         self.conditionalProbability = np.log(self.conditionalProbability)        #取对数
 
     def predict(self, testDataset, labels):
+        """
+        预测
+        :param testDataset:
+        :param labels:
+        :return:
+        """
         # 编码类别
         labels = self.__encoder.fit_transform(labels)
         #将预测集合表示成矩阵形式
@@ -149,40 +168,23 @@ class MutipleNativBayes(object):
                 correct += 1
             else:
                 incorrect += 1
-        print("正确率是：%f" % (correct / testNum))
-
-        # print(self.wordBag)
-        # print(testMatrix)
-
-
-
+        print("正确率是：{0}".format(correct / testNum))
 
 
 if __name__ == '__main__':
     ticks = time.time()
     TRAIN_TABLE_NAME = "traindataset"   #训练集合所在的数据库表
     TEST_TABLE_NAME = "testdataset"     #测试集合所在的数据库表
-    conditions = ["id >= 1"]
-    encoder = preprocessing.LabelEncoder()
+    MAX_FEATURES = 100000               #选取的特征数特征数
 
     # 1、加载训练集
-    train_text = SqlHelper().commonSelect(tableName=TRAIN_TABLE_NAME, params=["content"], conditions=conditions)
-    train_text = [raw[0].decode() for raw in train_text]
-    train_label = SqlHelper().commonSelect(tableName=TRAIN_TABLE_NAME, params=["type"], conditions=conditions)
-    train_label = [raw[0] for raw in train_label]
-
+    X, y = loadDataSet(TRAIN_TABLE_NAME)
     mutipleNativBayes =MutipleNativBayes()
-    mutipleNativBayes.fit(train_text, train_label, max_features=30000)
+    mutipleNativBayes.fit(X, y, max_features = MAX_FEATURES)
+    # 2、加载测试集
+    X, y = loadDataSet(TEST_TABLE_NAME)
+    mutipleNativBayes.predict(X, y)
 
-    # 1、加载测试集
-    test_text = SqlHelper().commonSelect(tableName=TEST_TABLE_NAME, params=["content"], conditions=conditions)
-    test_text = [raw[0].decode() for raw in test_text]
-    test_label = SqlHelper().commonSelect(tableName=TEST_TABLE_NAME, params=["type"], conditions=conditions)
-    test_label = [raw[0] for raw in test_label]
-    # test_label = encoder.fit_transform(test_label)
-    mutipleNativBayes.predict(test_text, test_label)
-
-    print("用时：%f" % ((time.time()-ticks) / 60))
-    # mutipleNativBayes.createWordBag(train_text, train_label, max_features=30000)
+    print("用时：{0}".format((time.time()-ticks) / 60))
 
 

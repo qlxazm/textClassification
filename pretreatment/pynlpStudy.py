@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
 import pymysql
 from SQLHelper.SqlHelper import SqlHelper
-from textVectorGenerator.utils import wordSegmenter
-#链接数据库的属性
-TABLE_NAME = 'itnews'
-DEST_TABLE_NAME = 'it'
+from pretreatment.utils import wordSegmenter
 #批量插入的条数
 BATCH_SIZE=3000
-#  ,"tynews","fortunenews", "autonews", "estatenews"
-#  ,"ty","fortune","auto","estate"
-sourceTable=["mil_temp_news"]
-destTable=["mil"]
+
+sourceTable=["tynews","fortunenews", "autonews", "estatenews", "milnews", "jknews", "lifenews", "itnews", "whnews", "ylnews"]
+destTable=["ty","fortune","auto","estate","mil", "jk", "life", "it", "wh", "yl"]
 
 i = 0
-while i < 1:
+while i < len(sourceTable):
     TABLE_NAME = sourceTable[i]
     DEST_TABLE_NAME = destTable[i]
 
@@ -31,6 +27,9 @@ while i < 1:
             typeName = row[1]
             # 捕获UnicodeDecodeError错误并跳过
             try:
+                """
+                分词并去除停用词
+                """
                 content = wordSegmenter(content)
             except UnicodeDecodeError:
                 row = sqlHelper.getOneRecord()

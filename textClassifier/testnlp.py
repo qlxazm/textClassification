@@ -12,10 +12,11 @@ import numpy as np
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 from sklearn.datasets import load_iris
-import test.naive_bayes as mybayes
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.externals import joblib
+from sklearn.metrics import classification_report
 
 # response = urllib.request.urlopen("http://php.net")
 # html = response.read()
@@ -125,4 +126,18 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 # vector = TfidfVectorizer(stop_words=stopwordslist) #使用停用词表
 # tfidf = vector.fit_transform(corpus)
 # print(tfidf)
+
+#
+# clf = joblib.load("train_model.m")
+#
+# try:
+#     clf = joblib.load("train_model.m")
+# except FileNotFoundError:
+
+
+le = preprocessing.LabelEncoder()
+le.fit(["paris", "paris", "tokyo", "amsterdam"])
+
+print(le.classes_)
+
 
