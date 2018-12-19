@@ -140,4 +140,12 @@ le.fit(["paris", "paris", "tokyo", "amsterdam"])
 
 print(le.classes_)
 
+# wordbag = ["你好","我好"]
+# with open("wordBag.txt","w") as f:
+#     f.write(" ".join(wordbag))
+# f.close()
 
+with open("wordBag.txt","r") as f:
+    line = f.readline()
+    print(line.split(" "))
+f.close()

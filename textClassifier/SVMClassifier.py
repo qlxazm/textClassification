@@ -25,6 +25,9 @@ class SVMClassifier(object):
         self.__classNum = None  # 分类样本数
         self.__encoder = preprocessing.LabelEncoder()  # 编码器
         self.__SVM = LinearSVC(random_state=0, tol=1e-5, class_weight="balanced")
+        self.__className = None #分类的类别
+        self.__estimatorPath = "SVM.m"  # 模型存储路径
+        self.__wordBagPath = "SVMWordBag,txt"  # 词袋存储路径
         # self.__SVM = SGDClassifier(tol=0.01, n_jobs=-1, shuffle=True, average=True)      #分类器  使用两个CPU核  重排训练集合  随机梯度下降算法
 
     def __selectFeature(self, X,  labels, maxFeature=10000):
@@ -74,6 +77,26 @@ class SVMClassifier(object):
         # 正则化
         return preprocessing.normalize(X, norm='l2')
 
+    def __persist(self):
+        """
+        持久化存储模型和词袋
+        :return:
+        """
+        joblib.dump(self.__SVM, self.__estimatorPath)
+        with open(self.__wordBagPath, "w", encoding="utf8") as f:
+            f.write(" ".join(self.wordBag))
+        f.close()
+
+    def __load(self):
+        """
+        加载持久化存储的模型和词袋
+        :return:
+        """
+        self.__SVM = joblib.load(self.__estimatorPath)
+        with open(self.__wordBagPath, "r", encoding="utf8") as f:
+            self.wordBag = f.readline().split(" ")
+        f.close()
+
     def fitTransform(self, X, labels, maxFeature=30000):
         """
         训练模型并持久化
@@ -83,12 +106,14 @@ class SVMClassifier(object):
         :return:
         """
         # 编码类别
-        self.__trainY = self.__encoder.fit_transform(labels)
+        labels = self.__encoder.fit_transform(labels)
+        self.__className = self.__encoder.classes_
         try:
-            self.__SVM = joblib.load("SVM.m")
+            self.__load()
         except FileNotFoundError:
             # 打乱数据
             X, labels = shuffle(X,labels, random_state=0)
+            self.__trainY = labels
             #特征选择
             self.__selectFeature(X, self.__trainY, maxFeature)
             # self.__SVM.fit(self.__trainX, self.__trainY)
@@ -96,14 +121,15 @@ class SVMClassifier(object):
             svm_clf = self.__SVM
             param_grid = [
                 {
-                    'C': [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
+                    'C': [0.001, 0.01, 0.1, 1, 10]
+                    # 'gammas': [0.001, 0.01, 0.1, 1]
                  }
             ]
             gridSearch = GridSearchCV(svm_clf, param_grid, scoring='accuracy', cv=5)
             gridSearch.fit(self.__trainX, self.__trainY)
             self.__SVM = gridSearch.best_estimator_
             # 保存模型到本地文件
-            joblib.dump(self.__SVM, "SVM.m")
+            self.__persist()
 
 
     def predict(self, X, labels):
@@ -118,7 +144,7 @@ class SVMClassifier(object):
         X = self.__createTestMatrix(X)
         preLables = self.__SVM.predict(X)
         print("正确率：%f" % (np.mean(preLables == labels))) #准确度
-        print(confusion_matrix(labels, preLables) )          #混淆矩阵
+        print(confusion_matrix(labels, preLables))          #混淆矩阵
 
 
 if __name__ == '__main__':
@@ -126,7 +152,7 @@ if __name__ == '__main__':
 
     TRAIN_TABLE_NAME = "traindataset"  # 训练集合所在的数据库表
     TEST_TABLE_NAME = "testdataset"    # 测试集合所在的数据库表
-    MAX_FEATURE = 30000                #选取的特征数
+    MAX_FEATURE = 'all'                #选取的特征数
 
     # 1、加载训练集
     X, y = loadDataSet(tableName = TRAIN_TABLE_NAME)

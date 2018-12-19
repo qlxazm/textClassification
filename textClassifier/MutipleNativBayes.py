@@ -67,10 +67,11 @@ class MutipleNativBayes(object):
         self.prioriProbability = []
         self.__classIndex = []
         k = labels[0]
+        kAlpha = self.__alpha * self.__classNum
         for label in labels:
             if k != label:
                 self.__classIndex.append(k)
-                temp = (self.__numOfClass[k]) / (textNumber)
+                temp = (self.__numOfClass[k] + self.__alpha) / (textNumber + kAlpha)
                 self.prioriProbability.append(math.log(temp))
                 k = label
         temp = (self.__numOfClass[labels[-1]]) / (textNumber)
