@@ -14,6 +14,7 @@ from sklearn.externals import joblib
 from textClassifier.utils import loadDataSet
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
 import time
 
 class SVMClassifier(object):
@@ -23,11 +24,10 @@ class SVMClassifier(object):
         self.__trainX = None    #训练数据集
         self.__trainY = None    #训练数据集label
         self.__classNum = None  # 分类样本数
-        self.__encoder = preprocessing.LabelEncoder()  # 编码器
         self.__SVM = LinearSVC(random_state=0, tol=1e-5, class_weight="balanced")
         self.__className = None #分类的类别
         self.__estimatorPath = "SVM.m"  # 模型存储路径
-        self.__wordBagPath = "SVMWordBag,txt"  # 词袋存储路径
+        self.__wordBagPath = "SVMWordBag.txt"  # 词袋存储路径
         # self.__SVM = SGDClassifier(tol=0.01, n_jobs=-1, shuffle=True, average=True)      #分类器  使用两个CPU核  重排训练集合  随机梯度下降算法
 
     def __selectFeature(self, X,  labels, maxFeature=10000):
@@ -105,12 +105,13 @@ class SVMClassifier(object):
         :param maxFeature:
         :return:
         """
-        # 编码类别
-        labels = self.__encoder.fit_transform(labels)
-        self.__className = self.__encoder.classes_
+
         try:
             self.__load()
         except FileNotFoundError:
+            # 编码类别
+            labels =  preprocessing.LabelEncoder().fit_transform(labels)
+            self.__className = self.__encoder.classes_
             # 打乱数据
             X, labels = shuffle(X,labels, random_state=0)
             self.__trainY = labels
@@ -121,7 +122,7 @@ class SVMClassifier(object):
             svm_clf = self.__SVM
             param_grid = [
                 {
-                    'C': [0.001, 0.01, 0.1, 1, 10]
+                    'C': [0.001, 0.01, 0.1, 1, 10]   #惩罚系数
                     # 'gammas': [0.001, 0.01, 0.1, 1]
                  }
             ]
@@ -140,11 +141,13 @@ class SVMClassifier(object):
         :return:
         """
         # 编码类别
-        labels = self.__encoder.transform(labels)
+        labels = preprocessing.LabelEncoder().fit_transform(labels)
         X = self.__createTestMatrix(X)
         preLables = self.__SVM.predict(X)
         print("正确率：%f" % (np.mean(preLables == labels))) #准确度
         print(confusion_matrix(labels, preLables))          #混淆矩阵
+        print(classification_report(labels, preLables))
+
 
 
 if __name__ == '__main__':
@@ -152,12 +155,13 @@ if __name__ == '__main__':
 
     TRAIN_TABLE_NAME = "traindataset"  # 训练集合所在的数据库表
     TEST_TABLE_NAME = "testdataset"    # 测试集合所在的数据库表
-    MAX_FEATURE = 'all'                #选取的特征数
+    MAX_FEATURE = 100000                #选取的特征数
 
     # 1、加载训练集
-    X, y = loadDataSet(tableName = TRAIN_TABLE_NAME)
+    # X, y = loadDataSet(tableName = TRAIN_TABLE_NAME)
     svmClassifier = SVMClassifier()
-    svmClassifier.fitTransform(X, y, maxFeature = MAX_FEATURE)
+    # svmClassifier.fitTransform(X, y, maxFeature = MAX_FEATURE)
+    svmClassifier.fitTransform(None, None, maxFeature = MAX_FEATURE)
 
     # 2、加载测试集
     X, y = loadDataSet(tableName = TEST_TABLE_NAME)
